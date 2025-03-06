@@ -3,49 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Photo Capture</title>
+    <title>Camera App with Filters</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        video, canvas { width: 100%; max-width: 400px; border-radius: 10px; }
+        .filters button { margin: 5px; padding: 10px; cursor: pointer; }
+        .filtered { filter: none; }
+        .sepia { filter: sepia(1); }
+        .grayscale { filter: grayscale(1); }
+        .invert { filter: invert(1); }
+        .blur { filter: blur(5px); }
+    </style>
 </head>
 <body>
-    <h2>Camera Photo Capture</h2>
+    <h2>Camera with Filters</h2>
     <video id="video" autoplay playsinline></video>
-    <button id="capture">Capture Photo</button>
+    <br>
+    <button id="capture">📸 Capture</button>
+    <button id="download" style="display: none;">⬇️ Download</button>
+    <br><br>
     <canvas id="canvas"></canvas>
+    <div class="filters">
+        <button onclick="applyFilter('filtered')">Normal</button>
+        <button onclick="applyFilter('sepia')">Sepia</button>
+        <button onclick="applyFilter('grayscale')">Grayscale</button>
+        <button onclick="applyFilter('invert')">Invert</button>
+        <button onclick="applyFilter('blur')">Blur</button>
+    </div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const captureBtn = document.getElementById('capture');
         const ctx = canvas.getContext('2d');
+        const captureBtn = document.getElementById('capture');
+        const downloadBtn = document.getElementById('download');
+        let currentFilter = 'filtered';
 
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" } // Uses back camera
+                });
                 video.srcObject = stream;
             } catch (err) {
-                console.error("Camera error:", err);
-
-                if (err.name === "NotAllowedError") {
-                    alert("Camera permission denied. Please allow access in browser settings.");
-                } else if (err.name === "NotFoundError") {
-                    alert("No camera detected. Check if your camera is connected.");
-                } else if (err.name === "AbortError") {
-                    alert("Camera access was interrupted. Try restarting your browser.");
-                } else if (err.name === "OverconstrainedError") {
-                    alert("Your camera does not support the requested settings.");
-                } else {
-                    alert(`Error: ${err.message}`);
-                }
+                alert("Camera access denied! Please allow camera permissions.");
+                console.error(err);
             }
         }
 
+        function applyFilter(filterClass) {
+            currentFilter = filterClass;
+            video.className = filterClass;
+        }
+
         captureBtn.addEventListener('click', () => {
-            if (!video.srcObject) {
-                alert("Camera not started. Please check permissions.");
-                return;
-            }
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+            ctx.filter = getComputedStyle(video).filter; // Apply filter
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            downloadBtn.style.display = 'inline';
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'captured-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
         });
 
         startCamera();
